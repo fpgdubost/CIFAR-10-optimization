@@ -137,7 +137,7 @@ def network_classification_2D():
 
     # compile model
     print('compile model...')
-    optimizer = 'adadelta'  #optimizers.Adam() 'adadelta'
+    optimizer = optimizers.Adam(lr=0.00005) #'adadelta'
     loss = 'binary_crossentropy'  # dice_loss 'binary_crossentropy'
     model.compile(loss=loss, optimizer=optimizer, metrics=[compute_f1])
 
@@ -511,7 +511,7 @@ def train_model():
 
     # train model
     print('training ...')
-    step_per_epoch = 100 #len(train_set_y) / batch_size
+    step_per_epoch = 10 #len(train_set_y) / batch_size
     model.fit_generator(datagen.flow(train_set_x, train_set_y, batch_size=batch_size, shuffle=True),
                         steps_per_epoch=step_per_epoch, epochs=nb_epoch,
                         verbose=1, validation_data=(valid_set_x, valid_set_y), callbacks=[history, saveBestModel],
@@ -606,7 +606,7 @@ if __name__ == '__main__':
 
     # training parameters
     batch_size = 1  # 64
-    nb_epoch = 150  # 2000 400 150
+    nb_epoch = 2000000   # 2000 400 150
     dropout_rate = 0.0  # 0.3
 
     train_model()

@@ -15,8 +15,8 @@ def add_noise(image):
     image += noise
     return image
 
-def extract_negative_samples(risk_level, sequences_x,x,y):
-    nbr_neg = nbr_seq * risk_level
+def extract_negative_samples(risk_level, sequences_x,x,y,imbalance_factor=1):
+    nbr_neg = nbr_seq * (risk_level * imbalance_factor)
     x_neg_all = x[y == NEGATIVE_LABEL_ID]
     x_neg = np.zeros([nbr_neg] + list(sequences_x.shape[2:]))
     y_neg = np.zeros([nbr_neg])
@@ -24,7 +24,7 @@ def extract_negative_samples(risk_level, sequences_x,x,y):
         index = random.randrange(len(x_neg_all))
         x_neg[i] = x_neg_all[index]
     # copy sampled negatives to fill the rest
-    for i in range(1, risk_level):
+    for i in range(1, risk_level * imbalance_factor):
         x_neg[nbr_seq * i:nbr_seq * (i + 1)] = x_neg[:nbr_seq]
 
     return x_neg, y_neg
@@ -36,6 +36,7 @@ if __name__ == '__main__':
     STD_FACTOR_NOISE = 0.
     NBR_CHANNELS = 3
     NEGATIVE_LABEL_ID = 9
+    IMBALANCE_FACTOR = 2
 
     # exp number
     exp_number = sys.argv[1]
@@ -90,7 +91,7 @@ if __name__ == '__main__':
 
         # extract negative samples
         x_train_neg, y_train_neg = extract_negative_samples(risk_level, sequences_x_train, x_train, y_train)
-        x_valid_neg, y_valid_neg = extract_negative_samples(risk_level, sequences_x_valid, x_valid, y_valid)
+        x_valid_neg, y_valid_neg = extract_negative_samples(risk_level, sequences_x_valid, x_valid, y_valid, IMBALANCE_FACTOR)
 
         # merge positives and negatives ---------------------------------------------
         x_train = np.concatenate((x_train_pos,x_train_neg),axis=0)
