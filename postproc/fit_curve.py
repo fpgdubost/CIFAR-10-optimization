@@ -14,10 +14,12 @@ import numpy as np
 
 
 EXPERIMENT_ID = sys.argv[1]
-EXPERIMENT_TO_PROCESS = 818
-interpolation_factor = 20
+EXPERIMENT_TO_PROCESS = 829
+learning_rate_cur = 0.00001
+learning_rate_ref = 0.00001
+interpolation_factor = learning_rate_cur / learning_rate_ref
 range_x = [0,12000]
-range_y = [0.64,0.72]
+range_y = [0.4,1.] #[0.64,0.72] [0.68, 0.70]
 
 # paths
 path_experiments = '../../experiments'

@@ -137,7 +137,7 @@ def network_classification_2D():
 
     # compile model
     print('compile model...')
-    optimizer = optimizers.Adam(lr=0.00005) #'adadelta'
+    optimizer = 'adadelta'  #'adadelta' optimizers.Adam(lr=0.00001)
     loss = 'binary_crossentropy'  # dice_loss 'binary_crossentropy'
     model.compile(loss=loss, optimizer=optimizer, metrics=[compute_f1])
 
@@ -450,11 +450,11 @@ def prepare_single_dataset(dataset_path,split):
 
     return x,y
 
-def load_and_prepare_data(dataset_path):
+def load_and_prepare_data(dataset_path_train, dataset_path_valid):
 
     # load data
-    train_set_x, train_set_y = prepare_single_dataset(dataset_path,'train')
-    valid_set_x, valid_set_y = prepare_single_dataset(dataset_path,'valid')
+    train_set_x, train_set_y = prepare_single_dataset(dataset_path_train, 'train')
+    valid_set_x, valid_set_y = prepare_single_dataset(dataset_path_valid, 'valid')
 
     # Coroflo generator
     datagen = DataGenerator(train_set_x, train_set_y, params, paddingGT=padding, batch_size=batch_size,
@@ -497,7 +497,7 @@ def train_model():
         json_file.write(model_json)
 
     # load dataset
-    datagen, train_set_x, train_set_y, valid_set_x, valid_set_y = load_and_prepare_data(dataset_path)
+    datagen, train_set_x, train_set_y, valid_set_x, valid_set_y = load_and_prepare_data(dataset_path_train, dataset_path_valid)
 
     # Calculate the weights for each class so that we can balance the data
     weights = class_weight.compute_class_weight('balanced', np.unique(train_set_y), np.squeeze(train_set_y))
@@ -549,8 +549,9 @@ def fixSeeds():
 if __name__ == '__main__':
     # inputs
     EXPERIMENT_ID = sys.argv[1]
-    RISK_LEVEL = sys.argv[2]
-    DATASET_ID = sys.argv[3]
+    RISK_LEVEL_TRAIN = sys.argv[2]
+    RISK_LEVEL_VALID = sys.argv[3]
+    DATASET_ID = sys.argv[4]
 
     fixedSeed = False
 
@@ -561,7 +562,8 @@ if __name__ == '__main__':
 
     # data parameters
     # path - depends on the file system
-    dataset_path = os.path.join('../../../experiments',str(DATASET_ID),'dataset_for_training_risk_level_'+ str(RISK_LEVEL) +'.h5')
+    dataset_path_train = os.path.join('../../../experiments',str(DATASET_ID),'dataset_for_training_risk_level_'+ str(RISK_LEVEL_TRAIN) +'.h5')
+    dataset_path_valid = os.path.join('../../../experiments',str(DATASET_ID),'dataset_for_training_risk_level_'+ str(RISK_LEVEL_VALID) +'.h5')
 
     # normalization
     normalization = 'minMax'  # minMax percentile meanstd
