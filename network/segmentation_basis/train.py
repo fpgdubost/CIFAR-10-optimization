@@ -137,7 +137,7 @@ def network_classification_2D():
 
     # compile model
     print('compile model...')
-    optimizer = 'adadelta'  #'adadelta' optimizers.Adam(lr=0.00001)
+    optimizer = optimizers.Adam(lr=LEARNING_RATE_FACTOR*0.00001)  #'adadelta' optimizers.Adam(lr=0.00001)
     loss = 'binary_crossentropy'  # dice_loss 'binary_crossentropy'
     model.compile(loss=loss, optimizer=optimizer, metrics=[compute_f1])
 
@@ -552,6 +552,7 @@ if __name__ == '__main__':
     RISK_LEVEL_TRAIN = sys.argv[2]
     RISK_LEVEL_VALID = sys.argv[3]
     DATASET_ID = sys.argv[4]
+    LEARNING_RATE_FACTOR = int(sys.argv[5])
 
     fixedSeed = False
 
@@ -608,7 +609,7 @@ if __name__ == '__main__':
 
     # training parameters
     batch_size = 1  # 64
-    nb_epoch = 2000000   # 2000 400 150
+    nb_epoch = 6000   # 2000 400 150
     dropout_rate = 0.0  # 0.3
 
     train_model()

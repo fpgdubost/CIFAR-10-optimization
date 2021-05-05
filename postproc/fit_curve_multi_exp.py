@@ -14,14 +14,14 @@ import numpy as np
 
 
 EXPERIMENT_ID = sys.argv[1]
-EXPERIMENTS_TO_PROCESS = [836, 845, 837]
+EXPERIMENTS_TO_PROCESS = [851] #[836, 845, 837]
 LEARNING_RATE_REF = 0.00001
-LEARNING_RATES = [0.00001, 0.00005, 0.0001]
-COLOR = ['red', 'green', 'blue']
-RANGE_X = [0,12000]
-RANGE_Y = [0.64,0.72] #[0.64,0.72] [0.68, 0.70]
+LEARNING_RATES = [0.00001] #[0.00001, 0.00005, 0.0001]
+COLOR = ['red'] #['red', 'green', 'blue']
+RANGE_X = [0,6000]
+RANGE_Y = [0.68,0.71] #[0.64,0.72] [0.68, 0.70]
 SHOW_SAVGOL = False
-POLYORDER = 4
+POLYORDER = 6 # 4 or 6
 
 # paths
 path_experiments = '../../experiments'
