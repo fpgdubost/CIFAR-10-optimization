@@ -17,9 +17,12 @@ from basicFunctions import createExpFolderandCodeList, ClassificationCallback, M
 from keras.utils import plot_model
 from keras.layers import LeakyReLU
 import sys
-sys.path.append('../keras_2.2.0')
-from optimizers_modified import Deltadam
+#sys.path.append('../keras_2.2.0')
+#from optimizers_modified import Deltadam
 from keras import optimizers
+from keras.optimizers import Optimizer
+from keras.legacy import interfaces
+from keras import backend as K
 from keras import initializers
 import tensorflow as tf
 import random as rn
@@ -41,6 +44,97 @@ from tensorflow.python.framework import ops
 from densenet121 import DenseNet
 
 
+class Deltadam(Optimizer):
+    """Deltadam optimizer.
+
+    Default parameters follow those provided in the original paper.
+
+    # Arguments
+        lr: float >= 0. Learning rate.
+        beta_1: float, 0 < beta < 1. Generally close to 1.
+        beta_2: float, 0 < beta < 1. Generally close to 1.
+        epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
+        decay: float >= 0. Learning rate decay over each update.
+        amsgrad: boolean. Whether to apply the AMSGrad variant of this
+            algorithm from the paper "On the Convergence of Adam and
+            Beyond".
+
+    # References
+        - [Adam - A Method for Stochastic Optimization](http://arxiv.org/abs/1412.6980v8)
+        - [On the Convergence of Adam and Beyond](https://openreview.net/forum?id=ryQu7f-RZ)
+    """
+
+    def __init__(self, lr=0.001, rho=0.95, beta_1=0.9, beta_2=0.999,
+                 epsilon=None, decay=0., amsgrad=False, **kwargs):
+        super(Deltadam, self).__init__(**kwargs)
+        with K.name_scope(self.__class__.__name__):
+            self.iterations = K.variable(0, dtype='int64', name='iterations')
+            self.lr = K.variable(lr, name='lr')
+            self.beta_1 = K.variable(beta_1, name='beta_1')
+            self.beta_2 = K.variable(beta_2, name='beta_2')
+            self.decay = K.variable(decay, name='decay')
+        if epsilon is None:
+            epsilon = K.epsilon()
+        self.epsilon = epsilon
+        self.initial_decay = decay
+        self.amsgrad = amsgrad
+        self.rho = rho
+
+    @interfaces.legacy_get_updates_support
+    def get_updates(self, loss, params):
+        grads = self.get_gradients(loss, params)
+
+        shapes = [K.int_shape(p) for p in params]
+        accumulators = [K.zeros(shape) for shape in shapes]
+        delta_accumulators = [K.zeros(shape) for shape in shapes]
+        self.updates = [K.update_add(self.iterations, 1)]
+
+        lr = self.lr
+        if self.initial_decay > 0:
+            lr = lr * (1. / (1. + self.decay * K.cast(self.iterations,
+                                                      K.dtype(self.decay))))
+
+        t = K.cast(self.iterations, K.floatx()) + 1
+        lr_t = lr * (K.sqrt(1. - K.pow(self.beta_2, t)) /
+                     (1. - K.pow(self.beta_1, t)))
+
+        ms = [K.zeros(K.int_shape(p), dtype=K.dtype(p)) for p in params]
+        vs = [K.zeros(K.int_shape(p), dtype=K.dtype(p)) for p in params]
+        vhats = [K.zeros(1) for _ in params]
+        self.weights = [self.iterations] + ms + vs + vhats + delta_accumulators
+
+        for p, g, m, v, vhat, d_a in zip(params, grads, ms, vs, vhats, delta_accumulators):
+            m_t = (self.beta_1 * m) + (1. - self.beta_1) * g
+            v_t = (self.beta_2 * v) + (1. - self.beta_2) * K.square(g)
+
+            # use the new accumulator and the *old* delta_accumulator
+            update = m_t * K.sqrt(d_a + self.epsilon) / K.sqrt(K.sqrt(v_t) + self.epsilon)
+            p_t = p - lr_t * update
+
+            self.updates.append(K.update(m, m_t))
+            self.updates.append(K.update(v, v_t))
+            new_p = p_t
+
+            # Apply constraints.
+            if getattr(p, 'constraint', None) is not None:
+                new_p = p.constraint(new_p)
+
+            self.updates.append(K.update(p, new_p))
+
+            # update delta_accumulator
+            new_d_a = self.rho * d_a + (1 - self.rho) * K.square(update)
+            self.updates.append(K.update(d_a, new_d_a))
+        return self.updates
+
+    def get_config(self):
+        config = {'lr': float(K.get_value(self.lr)),
+                  'beta_1': float(K.get_value(self.beta_1)),
+                  'beta_2': float(K.get_value(self.beta_2)),
+                  'decay': float(K.get_value(self.decay)),
+                  'epsilon': self.epsilon,
+                  'amsgrad': self.amsgrad}
+        base_config = super(Deltadam, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 def get_simple_gpunet():
@@ -144,9 +238,9 @@ def network_classification_2D():
     if OPTIMIZER==0:
         optimizer = optimizers.Adadelta(lr=LEARNING_RATE_FACTOR*0.00001, rho=0.95, epsilon=1e-07)  #'adadelta' optimizers.Adam(lr=0.00001) optimizers.Adam(lr=LEARNING_RATE_FACTOR*0.00001
     elif OPTIMIZER==1:
-        optimizer = optimizers.Adam(lr=LEARNING_RATE_FACTOR * 0.00001)
+        optimizer = optimizers.Adam(lr=LEARNING_RATE_FACTOR * 0.001)
     elif OPTIMIZER==2:
-        optimizer = optimizers.Deltadan(lr=1.0)
+        optimizer = Deltadam(lr=LEARNING_RATE_FACTOR * 0.00001)
     loss = 'binary_crossentropy'  # dice_loss 'binary_crossentropy'
     model.compile(loss=loss, optimizer=optimizer, metrics=[compute_f1])
 
@@ -520,7 +614,7 @@ def train_model():
 
     # train model
     print('training ...')
-    step_per_epoch = 10 #len(train_set_y) / batch_size
+    step_per_epoch = 1 #len(train_set_y) / batch_size
     model.fit_generator(datagen.flow(train_set_x, train_set_y, batch_size=batch_size, shuffle=True),
                         steps_per_epoch=step_per_epoch, epochs=nb_epoch,
                         verbose=1, validation_data=(valid_set_x, valid_set_y), callbacks=[history, saveBestModel],
