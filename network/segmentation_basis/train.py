@@ -16,6 +16,9 @@ from keras import losses
 from basicFunctions import createExpFolderandCodeList, ClassificationCallback, Metrics, LossHistoryBinary, LossHistory, plateauMonitoring, dice_loss, compute_f1
 from keras.utils import plot_model
 from keras.layers import LeakyReLU
+import sys
+sys.path.append('../keras_2.2.0')
+from optimizers_modified import Deltadam
 from keras import optimizers
 from keras import initializers
 import tensorflow as tf
@@ -24,7 +27,6 @@ from keras import metrics
 from ipdb import set_trace as bp
 from data_generator import DataGenerator
 from shutil import copy2
-import sys
 import os
 import numpy as np
 import pandas as pd
@@ -37,6 +39,8 @@ import h5py
 from tensorflow.python.framework import ops
 
 from densenet121 import DenseNet
+
+
 
 
 def get_simple_gpunet():
@@ -137,7 +141,12 @@ def network_classification_2D():
 
     # compile model
     print('compile model...')
-    optimizer = optimizers.Adam(lr=LEARNING_RATE_FACTOR*0.00001)  #'adadelta' optimizers.Adam(lr=0.00001)
+    if OPTIMIZER==0:
+        optimizer = optimizers.Adadelta(lr=LEARNING_RATE_FACTOR*0.00001, rho=0.95, epsilon=1e-07)  #'adadelta' optimizers.Adam(lr=0.00001) optimizers.Adam(lr=LEARNING_RATE_FACTOR*0.00001
+    elif OPTIMIZER==1:
+        optimizer = optimizers.Adam(lr=LEARNING_RATE_FACTOR * 0.00001)
+    elif OPTIMIZER==2:
+        optimizer = optimizers.Deltadan(lr=1.0)
     loss = 'binary_crossentropy'  # dice_loss 'binary_crossentropy'
     model.compile(loss=loss, optimizer=optimizer, metrics=[compute_f1])
 
@@ -553,6 +562,10 @@ if __name__ == '__main__':
     RISK_LEVEL_VALID = sys.argv[3]
     DATASET_ID = sys.argv[4]
     LEARNING_RATE_FACTOR = int(sys.argv[5])
+    BATCH_SIZE = int(sys.argv[6])
+    OPTIMIZER = int(sys.argv[7])
+
+    print(EXPERIMENT_ID,RISK_LEVEL_TRAIN,RISK_LEVEL_VALID,DATASET_ID,LEARNING_RATE_FACTOR)
 
     fixedSeed = False
 
@@ -608,8 +621,8 @@ if __name__ == '__main__':
     padding = 0
 
     # training parameters
-    batch_size = 1  # 64
-    nb_epoch = 6000   # 2000 400 150
+    batch_size = BATCH_SIZE  # 64
+    nb_epoch = 1200   # 2000 400 150
     dropout_rate = 0.0  # 0.3
 
     train_model()

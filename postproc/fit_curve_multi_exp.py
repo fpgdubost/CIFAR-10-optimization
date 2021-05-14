@@ -14,14 +14,16 @@ import numpy as np
 
 
 EXPERIMENT_ID = sys.argv[1]
-EXPERIMENTS_TO_PROCESS = [851] #[836, 845, 837]
+EXPERIMENTS_TO_PROCESS = range(1084,1107) #[836, 845, 837] [889,891,893,895,897,898] [889,890,895,896]
 LEARNING_RATE_REF = 0.00001
-LEARNING_RATES = [0.00001] #[0.00001, 0.00005, 0.0001]
-COLOR = ['red'] #['red', 'green', 'blue']
-RANGE_X = [0,6000]
-RANGE_Y = [0.68,0.71] #[0.64,0.72] [0.68, 0.70]
+LEARNING_RATES = np.linspace(0.00001,0.0001,len(EXPERIMENTS_TO_PROCESS)) #[0.00001, 0.00005, 0.0001]
+cmap = plt.cm.jet # define the colormap
+COLOR = [cmap(int(i*cmap.N/len(EXPERIMENTS_TO_PROCESS))) for i in range(len(EXPERIMENTS_TO_PROCESS))]
+#COLOR = [(i, 0, 1) for i in np.linspace(0,1,len(EXPERIMENTS_TO_PROCESS))] #[(1, 0.2, 0.5)]*10 #['red', 'green', 'blue']
+RANGE_X = [0,400]
+RANGE_Y = [0.60,0.74] #[0.64,0.72] [0.68, 0.70]
 SHOW_SAVGOL = False
-POLYORDER = 6 # 4 or 6
+POLYORDER = 4 # 4 or 6
 
 # paths
 path_experiments = '../../experiments'
@@ -38,6 +40,7 @@ plt.figure()
 lines_for_legend = []
 # iterate over exp
 for exp_index, exp_id in enumerate(EXPERIMENTS_TO_PROCESS):
+    print(exp_id)
 
     # automatically compute interpolation factor
     interpolation_factor = LEARNING_RATES[exp_index] / LEARNING_RATE_REF
@@ -72,7 +75,7 @@ for exp_index, exp_id in enumerate(EXPERIMENTS_TO_PROCESS):
 
     # plot figure
     x_resacled = [el*interpolation_factor for el in x]
-    plt.plot(x_resacled, y.values, linewidth=.1, alpha=0.3, color=COLOR[exp_index])
+    plt.plot(x_resacled, y.values, linewidth=.3, alpha=0.3, color=COLOR[exp_index])
     if SHOW_SAVGOL:
         plt.plot(x_short, yhat)
     plt.plot(x_short, yhat2, color=COLOR[exp_index], label=format(LEARNING_RATES[exp_index],'.0e'))
